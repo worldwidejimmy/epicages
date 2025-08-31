@@ -5,28 +5,241 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Epic Ages</title>
     <style>
-      html, body, #root, .app { height: 100%; margin: 0; }
-      body { background: #0b0f1a; color: #e6e9ef; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif; }
-      .hud {
-        position: absolute; left: 10px; top: 10px; z-index: 5;
-        background: rgba(11,15,26,0.9); border: 1px solid #2e3548; border-radius: 8px; padding: 8px 10px;
-        backdrop-filter: blur(3px);
+      html, body, #root { height: 100%; margin: 0; padding: 0; }
+      body { 
+        background: #0b0f1a; 
+        color: #e6e9ef; 
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif; 
       }
-      .panel {
-        position: absolute; right: 10px; top: 10px; z-index: 5; width: 320px; max-height: 70%; overflow: auto;
-        background: rgba(11,15,26,0.9); border: 1px solid #2e3548; border-radius: 8px; padding: 8px 10px;
+      
+      .app {
+        height: 100%;
+        display: flex;
       }
-      .btn { background:#1b2439; color:#e6e9ef; border:1px solid #5b6374; border-radius:6px; padding:6px 10px; cursor:pointer; }
-      .btn:hover { background:#263150; }
-      ul { list-style: none; padding-left: 0; }
+      
+      .sidebar {
+        width: 320px;
+        height: 100%;
+        overflow-y: auto;
+        background: rgba(11,15,26,0.95);
+        border-right: 1px solid #2e3548;
+        padding: 16px;
+        z-index: 5;
+      }
+      
+      .game-area {
+        flex: 1;
+        position: relative;
+        height: 100%;
+      }
+      
+      .game-header h1 {
+        margin: 0 0 8px 0;
+        font-size: 24px;
+        color: #f9d65c;
+      }
+      
+      .era-badge {
+        margin-bottom: 16px;
+        padding: 8px;
+        background: rgba(249, 214, 92, 0.1);
+        border: 1px solid #f9d65c;
+        border-radius: 6px;
+      }
+      
+      .era-badge h2 {
+        margin: 0 0 4px 0;
+        font-size: 16px;
+        color: #f9d65c;
+      }
+      
+      .era-badge small {
+        color: #b8bcc8;
+      }
+      
+      .resources {
+        margin-bottom: 16px;
+      }
+      
+      .resources h3 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #e6e9ef;
+      }
+      
+      .resource-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      
+      .resource-item {
+        padding: 8px;
+        background: rgba(27, 36, 57, 0.6);
+        border: 1px solid #2e3548;
+        border-radius: 4px;
+      }
+      
+      .resource-item strong {
+        color: #f9d65c;
+      }
+      
+      .resource-item small {
+        display: block;
+        color: #8b95a7;
+        font-size: 10px;
+        margin-top: 2px;
+      }
+      
+      .actions {
+        margin-bottom: 16px;
+      }
+      
+      .actions h3 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #e6e9ef;
+      }
+      
+      .buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      
+      .btn { 
+        background: #1b2439; 
+        color: #e6e9ef; 
+        border: 1px solid #5b6374; 
+        border-radius: 6px; 
+        padding: 8px 10px; 
+        cursor: pointer;
+        font-size: 12px;
+        text-align: center;
+      }
+      
+      .btn:hover { 
+        background: #263150; 
+      }
+      
+      .command-section {
+        margin-bottom: 16px;
+      }
+      
+      .command-section label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: #b8bcc8;
+      }
+      
+      .command-section input {
+        width: 100%;
+        padding: 8px;
+        background: #1b2439;
+        border: 1px solid #5b6374;
+        border-radius: 4px;
+        color: #e6e9ef;
+        font-size: 12px;
+        margin-bottom: 8px;
+        box-sizing: border-box;
+      }
+      
+      .tech-section, .structures-section, .neighbors-section {
+        margin-bottom: 16px;
+      }
+      
+      .tech-section h3, .structures-section h3, .neighbors-section h3 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #e6e9ef;
+      }
+      
+      .tech-list, .structure-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      
+      .tech-item, .structure-item {
+        padding: 4px 8px;
+        background: rgba(27, 36, 57, 0.4);
+        border: 1px solid #2e3548;
+        border-radius: 4px;
+        margin-bottom: 4px;
+        font-size: 12px;
+      }
+      
+      .neighbor {
+        padding: 8px;
+        background: rgba(27, 36, 57, 0.4);
+        border: 1px solid #2e3548;
+        border-radius: 4px;
+        margin-bottom: 8px;
+      }
+      
+      .neighbor strong {
+        color: #f9d65c;
+      }
+      
+      .neighbor-info {
+        font-size: 11px;
+        color: #8b95a7;
+        margin-top: 4px;
+      }
+      
+      .controls {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #2e3548;
+      }
+      
+      .controls label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: #b8bcc8;
+      }
+      
+      .controls input[type="range"] {
+        width: 100%;
+        margin-bottom: 4px;
+      }
+      
+      .controls span {
+        font-size: 11px;
+        color: #8b95a7;
+      }
+      
       /* mobile tweaks */
       @media (max-width: 900px) {
-        .hud { left: 4px; top: 4px; padding: 6px 8px; }
-        .panel { right: 4px; top: auto; bottom: 4px; width: calc(100% - 16px); max-height: 40%; }
-        .btn { padding: 10px 12px; font-size: 16px; }
+        .app {
+          flex-direction: column;
+        }
+        
+        .sidebar {
+          width: 100%;
+          height: 200px;
+          order: 2;
+        }
+        
+        .game-area {
+          height: calc(100% - 200px);
+          order: 1;
+        }
+        
+        .buttons {
+          grid-template-columns: 1fr;
+        }
+        
+        .btn { 
+          padding: 12px 16px; 
+          font-size: 14px; 
+        }
       }
     </style>
     <link rel="icon" type="image/png" href="/assets/favicon.png" />
+    <link rel="shortcut icon" type="image/png" href="/assets/favicon.png" />
   </head>
   <body>
     <div id="root"></div>
@@ -34,7 +247,19 @@
       <img src="/assets/epic-ages-logo.png" alt="Epic Ages" style="max-width:60%;height:auto;opacity:0.9" />
     </div>
     <script>
-      window.addEventListener("load",()=>{const s=document.getElementById("splash"); if(s) s.style.display="none";});
+      window.addEventListener("load", () => {
+        const s = document.getElementById("splash");
+        if (s) {
+          // Show splash for at least 500ms (half a second)
+          setTimeout(() => {
+            s.style.opacity = "0";
+            s.style.transition = "opacity 0.3s ease";
+            setTimeout(() => {
+              s.style.display = "none";
+            }, 300); // Wait for fade out animation
+          }, 500);
+        }
+      });
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

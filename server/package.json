@@ -9,12 +9,13 @@
   },
   "devDependencies": {
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.5",
+    "tsc-alias": "^1.8.8",
     "tsconfig-paths": "^4.2.0",
-    "tsc-alias": "^1.8.8"
+    "tsx": "^4.20.5",
+    "typescript": "^5.4.5"
   },
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts",
+    "dev": "tsx watch --tsconfig tsconfig.json src/index.ts",
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "start": "node dist/index.js"
   }
