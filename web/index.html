@@ -211,6 +211,98 @@
         color: #8b95a7;
       }
       
+      .diagnostics-section {
+        margin-bottom: 16px;
+        padding: 12px;
+        background: rgba(27, 36, 57, 0.4);
+        border: 1px solid #2e3548;
+        border-radius: 6px;
+      }
+      
+      .diagnostics-section h3 {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        color: #f9d65c;
+      }
+      
+      .diag-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      
+      .diag-grid > div {
+        padding: 6px;
+        background: rgba(11, 15, 26, 0.6);
+        border-radius: 4px;
+      }
+      
+      .diag-grid p {
+        margin: 0 0 4px 0;
+        font-size: 10px;
+        color: #8b95a7;
+        text-transform: uppercase;
+      }
+      
+      .diag-grid strong {
+        font-size: 12px;
+        color: #e6e9ef;
+      }
+      
+      .last-event {
+        margin-bottom: 12px;
+        padding: 8px;
+        background: rgba(11, 15, 26, 0.6);
+        border-radius: 4px;
+      }
+      
+      .last-event p {
+        margin: 0 0 4px 0;
+        font-size: 10px;
+        color: #8b95a7;
+        text-transform: uppercase;
+      }
+      
+      .last-event strong {
+        font-size: 11px;
+        color: #e6e9ef;
+        word-break: break-word;
+      }
+      
+      .recent-events h4 {
+        margin: 0 0 8px 0;
+        font-size: 12px;
+        color: #b8bcc8;
+      }
+      
+      .recent-events ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      
+      .recent-events li {
+        padding: 6px;
+        background: rgba(11, 15, 26, 0.6);
+        border-radius: 4px;
+        margin-bottom: 4px;
+        font-size: 11px;
+        color: #e6e9ef;
+      }
+      
+      .recent-events li span {
+        color: #f9d65c;
+        font-weight: bold;
+      }
+      
+      .recent-events p {
+        margin: 0;
+        font-size: 11px;
+        color: #8b95a7;
+        font-style: italic;
+      }
+      
       /* mobile tweaks */
       @media (max-width: 900px) {
         .app {
@@ -243,22 +335,13 @@
   </head>
   <body>
     <div id="root"></div>
-    <div id="splash" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0b0f1a;z-index:10;">
-      <img src="/assets/epic-ages-logo.png" alt="Epic Ages" style="max-width:60%;height:auto;opacity:0.9" />
-    </div>
     <script>
-      window.addEventListener("load", () => {
-        const s = document.getElementById("splash");
-        if (s) {
-          // Show splash for at least 500ms (half a second)
-          setTimeout(() => {
-            s.style.opacity = "0";
-            s.style.transition = "opacity 0.3s ease";
-            setTimeout(() => {
-              s.style.display = "none";
-            }, 300); // Wait for fade out animation
-          }, 500);
-        }
+      // Remove splash immediately after DOMContentLoaded so we can see app or errors
+      document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(() => {
+          const s = document.getElementById("splash");
+          if (s) s.remove();
+        }, 100);
       });
     </script>
     <script type="module" src="/src/main.tsx"></script>

@@ -1,6 +1,81 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useGameStore } from "./state";
 import GameCanvas from "./components/GameCanvas";
+
+const readyStateLabels = [
+  "connecting",
+  "open",
+  "closing",
+  "closed",
+];
+
+function DiagnosticsPanel(){
+  const { status, ws, world, events, lastTick, lastUpdate, lastEvent } = useGameStore(state => ({
+    status: state.status,
+    ws: state.ws,
+    world: state.world,
+    events: state.events,
+    lastTick: state.lastTick,
+    lastUpdate: state.lastUpdate,
+    lastEvent: state.lastEvent,
+  }));
+
+  const readyStateLabel = ws ? readyStateLabels[ws.readyState] ?? `state ${ws.readyState}` : "idle";
+  const recentEvents = events.slice(-4).reverse();
+  const lastUpdateLabel = lastUpdate ? new Date(lastUpdate).toLocaleTimeString() : "waiting...";
+
+  return (
+    <section className="diagnostics-section" aria-live="polite">
+      <h3 title="Server connection and tick status">Live diagnostics</h3>
+      <div className="diag-grid">
+        <div>
+          <p>Connection</p>
+          <strong>{readyStateLabel}</strong>
+        </div>
+        <div>
+          <p>Status</p>
+          <strong>{status}</strong>
+        </div>
+        <div>
+          <p>Server tick</p>
+          <strong>{lastTick ?? "n/a"}</strong>
+        </div>
+        <div>
+          <p>Settlements</p>
+          <strong>{world?.settlements?.length ?? 0}</strong>
+        </div>
+        <div>
+          <p>Neighbors</p>
+          <strong>{world?.neighbors?.length ?? 0}</strong>
+        </div>
+        <div>
+          <p>Last update</p>
+          <strong>{lastUpdateLabel}</strong>
+        </div>
+      </div>
+      <div className="last-event">
+        <p>Last event</p>
+        <strong>
+          {lastEvent ? `Tick ${lastEvent.tick}: ${lastEvent.text}` : "Waiting for events"}
+        </strong>
+      </div>
+      <div className="recent-events">
+        <h4>Recent server events</h4>
+        {recentEvents.length ? (
+          <ul>
+            {recentEvents.map((event, idx) => (
+              <li key={`${event.tick}-${idx}`}>
+                <span>Tick {event.tick}:</span> {event.text}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No events received yet.</p>
+        )}
+      </div>
+    </section>
+  );
+}
 
 function Zoom(){
   return (
@@ -77,8 +152,6 @@ function Neighbors(){
 function ResourceDisplay() {
   const world = useGameStore(s => s.world);
   const localSettlement = world?.settlements?.find(s => s.id === "local") || world?.settlements?.[0];
-  
-  if (!localSettlement && !world) return <div title="Loading civilization data...">Loading...</div>;
 
   return (
     <div className="resources">
@@ -198,6 +271,7 @@ export default function App() {
         <TechTree />
         <Structures />
         <Neighbors />
+        <DiagnosticsPanel />
         
         <div className="controls">
           <Zoom />
