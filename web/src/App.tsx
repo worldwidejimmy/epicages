@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useGameStore } from "./state";
 import GameCanvas from "./components/GameCanvas";
+import SplashScreen from "./components/SplashScreen";
 
 const readyStateLabels = [
   "connecting",
@@ -283,8 +284,10 @@ export default function App() {
   }, []);
 
   return (
-    <div className="app">
-      <div className="sidebar">
+    <>
+      <SplashScreen />
+      <div className="app">
+        <div className="sidebar">
         <div className="game-header">
           <h1 title="Epic Ages - A Civilization Building Game">Epic Ages</h1>
           <EraBadge />
@@ -318,5 +321,6 @@ export default function App() {
         <GameCanvas />
       </div>
     </div>
+    </>
   );
 }

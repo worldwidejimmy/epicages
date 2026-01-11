@@ -12,6 +12,156 @@
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif; 
       }
       
+      /* Splash Screen */
+      .splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #0b0f1a 0%, #1a1f2e 50%, #0b0f1a 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        transition: opacity 0.5s ease-out;
+      }
+      
+      .splash-screen.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .splash-content {
+        text-align: center;
+        max-width: 600px;
+        padding: 40px;
+      }
+      
+      .splash-logo {
+        margin-bottom: 60px;
+      }
+      
+      .splash-title {
+        font-size: 72px;
+        font-weight: bold;
+        margin: 0;
+        background: linear-gradient(135deg, #f9d65c 0%, #ffd700 50%, #f9d65c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 30px rgba(249, 214, 92, 0.5);
+        animation: glow 2s ease-in-out infinite alternate;
+      }
+      
+      @keyframes glow {
+        from {
+          filter: drop-shadow(0 0 10px rgba(249, 214, 92, 0.5));
+        }
+        to {
+          filter: drop-shadow(0 0 20px rgba(249, 214, 92, 0.8));
+        }
+      }
+      
+      .splash-subtitle {
+        font-size: 18px;
+        color: #b8bcc8;
+        margin-top: 10px;
+        font-style: italic;
+      }
+      
+      .splash-info {
+        background: rgba(27, 36, 57, 0.6);
+        border: 1px solid #2e3548;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .splash-version,
+      .splash-build,
+      .splash-time {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(46, 53, 72, 0.5);
+      }
+      
+      .splash-version:last-child,
+      .splash-build:last-child,
+      .splash-time:last-child {
+        border-bottom: none;
+      }
+      
+      .info-label {
+        color: #8b95a7;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .info-value {
+        color: #f9d65c;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      
+      .splash-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(249, 214, 92, 0.2);
+        border-top-color: #f9d65c;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      
+      .loading-text {
+        color: #b8bcc8;
+        font-size: 14px;
+        animation: pulse 2s ease-in-out infinite;
+      }
+      
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      
+      /* Mobile responsive */
+      @media (max-width: 768px) {
+        .splash-title {
+          font-size: 48px;
+        }
+        
+        .splash-content {
+          padding: 20px;
+        }
+        
+        .splash-info {
+          padding: 16px;
+        }
+      }
+      
       .app {
         height: 100%;
         display: flex;
@@ -338,15 +488,7 @@
       window.EPIC_AGES_VERSION = "BUILD_VERSION_PLACEHOLDER";
       window.EPIC_AGES_BUILD_TIME = "BUILD_TIME_PLACEHOLDER";
       console.log("[Epic Ages] Client version:", window.EPIC_AGES_VERSION);
-      console.log("[TEST] Inline script executing - JavaScript is working!");
-      // Remove splash immediately after DOMContentLoaded so we can see app or errors
-      document.addEventListener("DOMContentLoaded", () => {
-        console.log("[TEST] DOMContentLoaded fired");
-        setTimeout(() => {
-          const s = document.getElementById("splash");
-          if (s) s.remove();
-        }, 100);
-      });
+      console.log("[Epic Ages] Build time:", window.EPIC_AGES_BUILD_TIME);
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
