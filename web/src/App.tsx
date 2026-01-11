@@ -29,6 +29,10 @@ function DiagnosticsPanel(){
       <h3 title="Server connection and tick status">Live diagnostics</h3>
       <div className="diag-grid">
         <div>
+          <p>Version</p>
+          <strong title="Server version code for deployment verification">{world?.version || "unknown"}</strong>
+        </div>
+        <div>
           <p>Connection</p>
           <strong>{readyStateLabel}</strong>
         </div>
@@ -153,13 +157,30 @@ function ResourceDisplay() {
   const world = useGameStore(s => s.world);
   const localSettlement = world?.settlements?.find(s => s.id === "local") || world?.settlements?.[0];
 
+  // Calculate housing capacity
+  const getHousingCapacity = (s: typeof localSettlement): number => {
+    if (!s) return 0;
+    let capacity = 0;
+    s.structures?.forEach(struct => {
+      if (struct === "campfire") capacity += 5;
+      else if (struct === "hut") capacity += 10;
+    });
+    return capacity;
+  };
+
+  const housingCapacity = getHousingCapacity(localSettlement);
+  const currentPop = localSettlement?.pop || 0;
+  const housingStatus = currentPop >= housingCapacity ? "full" : "available";
+
   return (
     <div className="resources">
       <h3 title="Your civilization's current resources">Resources</h3>
       <div className="resource-grid">
         <div className="resource-item" title="Food sustains your population and enables growth">
-          <strong>Food:</strong> <span>{localSettlement?.storage?.berries || 0}</span>
-          <small>Essential for population growth and preventing starvation</small>
+          <strong>Food:</strong> <span>
+            {(localSettlement?.storage?.berries || 0) + (localSettlement?.storage?.fish || 0)}
+          </span>
+          <small>Berries: {localSettlement?.storage?.berries || 0}, Fish: {localSettlement?.storage?.fish || 0}</small>
         </div>
         <div className="resource-item" title="Wood is used for construction and tools">
           <strong>Wood:</strong> <span>{localSettlement?.storage?.wood || 0}</span>
@@ -170,8 +191,14 @@ function ResourceDisplay() {
           <small>Sturdy material for advanced buildings and monuments</small>
         </div>
         <div className="resource-item" title="Total population size determines workforce capacity">
-          <strong>Population:</strong> <span>{localSettlement?.pop || 0}</span>
+          <strong>Population:</strong> <span>{currentPop}</span>
           <small>Your people - more population means greater productivity</small>
+        </div>
+        <div className="resource-item" title="Housing capacity limits population growth">
+          <strong>Housing:</strong> <span className={housingStatus === "full" ? "housing-full" : ""}>
+            {currentPop}/{housingCapacity}
+          </span>
+          <small>{housingStatus === "full" ? "At capacity - build more huts to grow" : "Population can grow"}</small>
         </div>
         <div className="resource-item" title="Structures built in this settlement">
           <strong>Structures:</strong> <span>{localSettlement?.structures?.length || 0}</span>
