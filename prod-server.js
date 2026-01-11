@@ -29,14 +29,13 @@ const staticOpts = {
   }
 };
 
-app.use('/epicages/', express.static(path.join(__dirname, 'web', 'dist'), staticOpts));
 app.use(express.static(path.join(__dirname, 'web', 'dist'), staticOpts));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'epic-ages', port: PORT });
 });
 
-const wss = new WebSocketServer({ server, path: '/epicages/' });
+const wss = new WebSocketServer({ server });
 
 let world = makeInitialWorld(Date.now());
 let backlog = [];
@@ -98,15 +97,11 @@ setInterval(() => {
   }
 }, 2000);
 
-app.use('/epicages/*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'web', 'dist', 'index.html'));
-});
-
 app.use('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'web', 'dist', 'index.html'));
 });
 
 server.listen(PORT, () => {
   console.log(`🚀 Epic Ages running on http://localhost:${PORT}`);
-  console.log(`📁 Available at: http://localhost:${PORT}/ and /epicages/`);
+  console.log(`📁 Available at: http://localhost:${PORT}/`);
 });

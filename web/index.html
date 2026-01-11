@@ -336,8 +336,10 @@
   <body>
     <div id="root"></div>
     <script>
+      console.log("[TEST] Inline script executing - JavaScript is working!");
       // Remove splash immediately after DOMContentLoaded so we can see app or errors
       document.addEventListener("DOMContentLoaded", () => {
+        console.log("[TEST] DOMContentLoaded fired");
         setTimeout(() => {
           const s = document.getElementById("splash");
           if (s) s.remove();

@@ -13,7 +13,7 @@ Run these anytime you move the repo to another host:
 # fonts & assets only change when you rebuild
 cd /home/ubuntu/apps/epicages.prod/web
 npm install
-npm run build    # Vite build applies base "/epicages/"
+npm run build    # Vite build uses base "/" (subdomain deployment)
 
 cd ../server
 npm install
@@ -26,7 +26,7 @@ npm install   # installs express/ws/dotenv used by prod-server.js
 
 ## Production server
 
-`prod-server.js` serves static files under `/epicages/`, exposes `/api/health`, and hosts the WebSocket. When you start it via PM2:
+`prod-server.js` serves static files from root (`/`), exposes `/api/health`, and hosts the WebSocket. When you start it via PM2:
 
 ```bash
 cd /home/ubuntu/apps/epicages.prod
@@ -39,41 +39,44 @@ Keep an eye on `/home/ubuntu/.pm2/logs/epicages-out.log` for startup messages li
 
 ## WebSocket configuration
 
-The client automatically connects to the same origin it was served from, so when the SPA lives behind `/epicages/` it requests `wss://kludgebot.com/epicages/`. To override this (local dev, alternate hosts, etc.) set `VITE_SERVER_WS`:
+The client automatically connects to the same origin it was served from, so when the SPA lives on `epicages.kludgebot.com` it requests `wss://epicages.kludgebot.com/`. To override this (local dev, alternate hosts, etc.) set `VITE_SERVER_WS`:
 
 ```bash
 # optional example for dev machines
-export VITE_SERVER_WS=wss://myhost.internal/epicages/
+export VITE_SERVER_WS=wss://myhost.internal/
 npm run dev:web
 ```
 
-Because the simulation lives server-side, the browser only renders snapshots/events it receives over the socket. The production server must therefore stay alive and have PM2/watchdog supervision if you want `kludgebot.com/epicages` to show the moving world.
+Because the simulation lives server-side, the browser only renders snapshots/events it receives over the socket. The production server must therefore stay alive and have PM2/watchdog supervision if you want `epicages.kludgebot.com` to show the moving world.
 
-## Apache nginx proxy (kludgebot dashboard)
+## Apache virtual host (subdomain deployment)
 
-Expose the running service through `kludgebot.com` at `/epicages` (this is the same slot listed in `/home/ubuntu/apps/server-management/PORT-MANAGEMENT.md`). A working Apache snippet looks like this:
+Epic Ages is deployed on the subdomain `epicages.kludgebot.com` (port 5060). The Apache configuration includes:
 
-```apache
-ProxyPreserveHost On
-ProxyRequests Off
-ProxyPass /epicages/ http://localhost:5060/epicages/
-ProxyPassReverse /epicages/ http://localhost:5060/epicages/
-ProxyPass /epicages http://localhost:5060/epicages
-ProxyPassReverse /epicages http://localhost:5060/epicages
-```
+1. **HTTP virtual host** (`/etc/apache2/sites-available/epicages.kludgebot.com.conf`):
+   - Redirects HTTP to HTTPS
 
-Ensure this block appears before the catch-all `ProxyPass / http://localhost:5070/` that serves the kludgebot SPA. If you move hosts, add the same block to the SSL and HTTP vhosts for `kludgebot.com`.
+2. **HTTPS virtual host** (`/etc/apache2/sites-available/epicages.kludgebot.com-le-ssl.conf`):
+   - Proxies all requests to `http://localhost:5060/`
+   - Includes WebSocket upgrade support for real-time game updates
+   - Uses SSL certificate for `epicages.kludgebot.com`
+
+The virtual host configuration includes WebSocket upgrade rules to support the game's real-time communication.
+
+## Cloudflare DNS
+
+- Add A record: `epicages` → `15.204.94.192` (can use proxy - orange cloud for CDN benefits)
+- SSL certificate is managed via Let's Encrypt/Certbot
 
 ## Kludgebot dashboard integration
 
-- The dashboard adds an internal link under `/epicages` pointing to the proxied path. Update `kludgebot.prod/src/App.jsx` if you rename or change the badge text.
-- Keep the dashboard rebuilt (`npm run build`) and restarted via PM2 so the new link and label stay in sync with the hosted slot.
+- The dashboard links to `https://epicages.kludgebot.com` as an external link. Update `kludgebot.prod/src/App.jsx` if you rename or change the badge text.
 
 ## Recurring maintenance
 
-- When you change `web/src` behave, rebuild Vite (`npm run build`) before reloading PM2 so the updated JS/HTML is served.
-- If the static bundle appears stale, purge Cloudflare cache for `https://kludgebot.com/epicages/*` after restarting the server.
+- When you change `web/src` files, rebuild Vite (`npm run build`) before reloading PM2 so the updated JS/HTML is served.
+- If the static bundle appears stale, purge Cloudflare cache for `https://epicages.kludgebot.com/*` after restarting the server.
 - Monitor `pm2 logs epicages` to ensure the WebSocket handshake and tick loop stay alive; the server currently logs when it starts but you can extend it to log proposals/events if you need more visibility.
-- The simulation runs a passive `setInterval` every two seconds even when no players are connected, so the PM2 process remains the authoritative owner of the world. Its idle footprint is light (memory stays under ~200MB and CPU usage hovers around 1-2% on the current machines) but keep it running so `kludgebot.com/epicages` can immediately show the latest tick when a browser connects.
+- The simulation runs a passive `setInterval` every two seconds even when no players are connected, so the PM2 process remains the authoritative owner of the world. Its idle footprint is light (memory stays under ~200MB and CPU usage hovers around 1-2% on the current machines) but keep it running so `epicages.kludgebot.com` can immediately show the latest tick when a browser connects.
 
 By documenting these steps and keeping this file updated, you can rehome Epic Ages to another stack without rediscovering the architecture.
