@@ -39,6 +39,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'epic-ages', port: PORT });
 });
 
+app.get('/api/version', (req, res) => {
+  res.json({ 
+    version: VERSION,
+    buildTime: BUILD_TIME,
+    serverVersion: VERSION,
+    worldVersion: world?.version || 'not-set'
+  });
+});
+
 const wss = new WebSocketServer({ server });
 
 let world = makeInitialWorld(Date.now());
