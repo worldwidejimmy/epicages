@@ -329,6 +329,124 @@
           font-size: 14px; 
         }
       }
+
+      /* Splash Screen Styles */
+      .splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #0b0f1a 0%, #1a1f2e 50%, #0b0f1a 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        transition: opacity 0.5s ease-out;
+      }
+
+      .splash-screen.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .splash-content {
+        text-align: center;
+        color: #e6e9ef;
+      }
+
+      .splash-logo {
+        margin-bottom: 32px;
+      }
+
+      .splash-title {
+        font-size: 48px;
+        font-weight: bold;
+        margin: 0 0 8px 0;
+        background: linear-gradient(135deg, #f9d65c 0%, #ffd700 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 20px rgba(249, 214, 92, 0.5);
+        animation: glow 2s ease-in-out infinite alternate;
+      }
+
+      @keyframes glow {
+        from {
+          filter: drop-shadow(0 0 10px rgba(249, 214, 92, 0.5));
+        }
+        to {
+          filter: drop-shadow(0 0 20px rgba(249, 214, 92, 0.8));
+        }
+      }
+
+      .splash-subtitle {
+        font-size: 18px;
+        color: #b8bcc8;
+        margin-top: 8px;
+      }
+
+      .splash-info {
+        margin-bottom: 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .splash-version,
+      .splash-build,
+      .splash-time {
+        display: flex;
+        gap: 8px;
+        font-size: 14px;
+      }
+
+      .info-label {
+        color: #8b95a7;
+      }
+
+      .info-value {
+        color: #f9d65c;
+        font-weight: 500;
+      }
+
+      .splash-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(249, 214, 92, 0.2);
+        border-top-color: #f9d65c;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-text {
+        color: #b8bcc8;
+        font-size: 14px;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
     </style>
     <link rel="icon" type="image/png" href="/assets/favicon.png" />
     <link rel="shortcut icon" type="image/png" href="/assets/favicon.png" />

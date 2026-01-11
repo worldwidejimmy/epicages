@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useGameStore } from "./state";
 import GameCanvas from "./components/GameCanvas";
+import SplashScreen from "./components/SplashScreen";
 
 const readyStateLabels = [
   "connecting",
@@ -19,6 +20,19 @@ function DiagnosticsPanel(){
     lastUpdate: state.lastUpdate,
     lastEvent: state.lastEvent,
   }));
+
+  // Get build time from window (injected at build time)
+  const buildTimeISO = (window as any).EPIC_AGES_BUILD_TIME || new Date().toISOString();
+  const buildDate = new Date(buildTimeISO);
+  const buildDateStr = buildDate.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  const buildTimeStr = buildDate.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   // Debug logging for version
   useEffect(() => {
@@ -64,6 +78,14 @@ function DiagnosticsPanel(){
         <div>
           <p>Last update</p>
           <strong>{lastUpdateLabel}</strong>
+        </div>
+        <div>
+          <p>Build date</p>
+          <strong title="Client build date">{buildDateStr}</strong>
+        </div>
+        <div>
+          <p>Build time</p>
+          <strong title="Client build time">{buildTimeStr}</strong>
         </div>
       </div>
       <div className="last-event">
@@ -283,8 +305,10 @@ export default function App() {
   }, []);
 
   return (
-    <div className="app">
-      <div className="sidebar">
+    <>
+      <SplashScreen />
+      <div className="app">
+        <div className="sidebar">
         <div className="game-header">
           <h1 title="Epic Ages - A Civilization Building Game">Epic Ages</h1>
           <EraBadge />
@@ -314,9 +338,10 @@ export default function App() {
         </div>
       </div>
       
-      <div className="game-area">
-        <GameCanvas />
+        <div className="game-area">
+          <GameCanvas />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
