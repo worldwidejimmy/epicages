@@ -20,6 +20,15 @@ function DiagnosticsPanel(){
     lastEvent: state.lastEvent,
   }));
 
+  // Debug logging for version
+  useEffect(() => {
+    if (world) {
+      console.log("[Diagnostics] World object:", world);
+      console.log("[Diagnostics] World version:", world.version);
+      console.log("[Diagnostics] World keys:", Object.keys(world));
+    }
+  }, [world]);
+
   const readyStateLabel = ws ? readyStateLabels[ws.readyState] ?? `state ${ws.readyState}` : "idle";
   const recentEvents = events.slice(-4).reverse();
   const lastUpdateLabel = lastUpdate ? new Date(lastUpdate).toLocaleTimeString() : "waiting...";
