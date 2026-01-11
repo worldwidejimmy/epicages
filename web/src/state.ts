@@ -57,6 +57,8 @@ export const useGameStore = create<Store>((set, get) => {
       const msg = JSON.parse(ev.data) as ServerToClient;
       const now = Date.now();
       if (msg.type === "snapshot") {
+        console.log("[WebSocket] Received snapshot, world version:", msg.world?.version);
+        console.log("[WebSocket] World object keys:", msg.world ? Object.keys(msg.world) : "no world");
         const lastEvent = msg.events[msg.events.length - 1] ?? null;
         set({
           world: msg.world,
@@ -67,6 +69,9 @@ export const useGameStore = create<Store>((set, get) => {
           lastUpdate: now
         });
       } else if (msg.type === "events") {
+        if (msg.world) {
+          console.log("[WebSocket] Received events update, world version:", msg.world?.version);
+        }
         const payloadEvent = msg.events[msg.events.length - 1] ?? null;
         set(state => {
           const nextEvents = [...state.events, ...msg.events].slice(-200);

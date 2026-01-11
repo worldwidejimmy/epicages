@@ -13,6 +13,22 @@ export function planFromIntent(world: World, playerId: string, intentText: strin
   if (/\b(hut|house|home|shelter)\b/.test(intent)) {
     return { playerId, action: "build", args: { structure: "hut", settlementId: firstSettlement }, intentText };
   }
+  if (/\b(farm|field|agriculture|grow|plant)\b/.test(intent)) {
+    return { playerId, action: "build", args: { structure: "farm", settlementId: firstSettlement }, intentText };
+  }
+  if (/\b(forge|smith|blacksmith)\b/.test(intent)) {
+    return { playerId, action: "build", args: { structure: "forge", settlementId: firstSettlement }, intentText };
+  }
+  if (/\b(bronze|bronze workshop|workshop)\b/.test(intent)) {
+    return { playerId, action: "build", args: { structure: "bronze_workshop", settlementId: firstSettlement }, intentText };
+  }
+  if (/\b(kiln|charcoal)\b/.test(intent)) {
+    return { playerId, action: "build", args: { structure: "charcoal_kiln", settlementId: firstSettlement }, intentText };
+  }
+  if (/\b(craft|make|create|tool|weapon)\b/.test(intent)) {
+    const item = /\b(weapon|sword|spear|axe)\b/.test(intent) ? "weapon" : "tool";
+    return { playerId, action: "craft", args: { item, settlementId: firstSettlement }, intentText };
+  }
   if (/\bpottery|pots|clay\b/.test(intent)) {
     return { playerId, action: "research", args: { tech: "pottery" }, intentText };
   }

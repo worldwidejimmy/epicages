@@ -332,10 +332,12 @@
     </style>
     <link rel="icon" type="image/png" href="/assets/favicon.png" />
     <link rel="shortcut icon" type="image/png" href="/assets/favicon.png" />
-  </head>
-  <body>
-    <div id="root"></div>
+    <meta name="epic-ages-version" content="BUILD_VERSION_PLACEHOLDER" />
     <script>
+      // Version info injected at build time
+      window.EPIC_AGES_VERSION = "BUILD_VERSION_PLACEHOLDER";
+      window.EPIC_AGES_BUILD_TIME = "BUILD_TIME_PLACEHOLDER";
+      console.log("[Epic Ages] Client version:", window.EPIC_AGES_VERSION);
       console.log("[TEST] Inline script executing - JavaScript is working!");
       // Remove splash immediately after DOMContentLoaded so we can see app or errors
       document.addEventListener("DOMContentLoaded", () => {

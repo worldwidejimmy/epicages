@@ -9,6 +9,10 @@ import { makeInitialWorld, stepSimulation, validateProposal } from "./server/dis
 import { planFromIntent } from "./server/dist/planner.js";
 import { planWithLLM } from "./server/dist/llm.js";
 
+// Version code for deployment verification
+const VERSION = "1.0.0-gameplay-v2";
+const BUILD_TIME = new Date().toISOString();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -35,9 +39,19 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'epic-ages', port: PORT });
 });
 
+app.get('/api/version', (req, res) => {
+  res.json({ 
+    version: VERSION,
+    buildTime: BUILD_TIME,
+    serverVersion: VERSION,
+    worldVersion: world?.version || 'not-set'
+  });
+});
+
 const wss = new WebSocketServer({ server });
 
 let world = makeInitialWorld(Date.now());
+world.version = VERSION; // Set version on initial world
 let backlog = [];
 
 function broadcast(msg) {
@@ -45,7 +59,7 @@ function broadcast(msg) {
   wss.clients.forEach((client) => {
     try {
       client.send(payload);
-    } catch {}
+    } catch { }
   });
 }
 
@@ -65,12 +79,14 @@ function handleProposal(p) {
   if (!validation.ok) return { ok: false, error: validation.error };
   const { newWorld, newEvents } = stepSimulation(world, p);
   world = newWorld;
+  world.version = VERSION; // Ensure version is always set
   backlog.push(...newEvents);
   broadcast({ type: "events", events: newEvents, world });
   return { ok: true };
 }
 
 wss.on("connection", (ws) => {
+  world.version = VERSION; // Ensure version is set before sending snapshot
   ws.send(JSON.stringify({ type: "snapshot", world, events: backlog.slice(-40) }));
   ws.on("message", async (data) => {
     try {
@@ -91,6 +107,7 @@ wss.on("connection", (ws) => {
 setInterval(() => {
   const { newWorld, newEvents } = stepSimulation(world, null);
   world = newWorld;
+  world.version = VERSION; // Ensure version is always set
   if (newEvents.length) {
     backlog.push(...newEvents);
     broadcast({ type: "events", events: newEvents, world });
@@ -104,4 +121,6 @@ app.use('*', (req, res) => {
 server.listen(PORT, () => {
   console.log(`🚀 Epic Ages running on http://localhost:${PORT}`);
   console.log(`📁 Available at: http://localhost:${PORT}/`);
+  console.log(`📦 Version: ${VERSION}`);
+  console.log(`🕐 Build time: ${BUILD_TIME}`);
 });

@@ -35,6 +35,7 @@ export type World = {
   settlements: Settlement[];
   neighbors?: Neighbor[];
   era?: Era;
+  version?: string; // Server version code for verification
 };
 
 export type GameEventShort = { tick: number; text: string };

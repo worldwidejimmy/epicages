@@ -5,13 +5,17 @@ import type { ClientToServer, ServerToClient, PlayerProposal, World, GameEventSh
 import { makeInitialWorld, stepSimulation, validateProposal } from "./sim.js";
 import { planFromIntent } from "./planner.js";
 import { planWithLLM } from "./llm.js";
+import { VERSION, BUILD_TIME } from "./version.js";
 
 const PORT = Number(process.env.PORT || 8787);
 let world = makeInitialWorld(Date.now());
+world.version = VERSION; // Set version on initial world
 let backlog: GameEventShort[] = [];
 
 const wss = new WebSocketServer({ port: PORT }, ()=>{
   console.log(`[server] Epic Ages WS listening on :${PORT}`);
+  console.log(`[server] Version: ${VERSION}`);
+  console.log(`[server] Build time: ${BUILD_TIME}`);
 });
 
 function broadcast(msg: ServerToClient){
@@ -20,6 +24,7 @@ function broadcast(msg: ServerToClient){
 }
 
 wss.on("connection", (ws)=>{
+  world.version = VERSION; // Ensure version is set before sending snapshot
   ws.send(JSON.stringify({ type:"snapshot", world, events: backlog.slice(-40) } satisfies ServerToClient));
   ws.on("message", async (data)=>{
     try {
@@ -28,7 +33,7 @@ wss.on("connection", (ws)=>{
         const mapped = await mapIntentIfNeeded(msg.proposal);
         const res = handleProposal(mapped);
         if (!res.ok) {
-          ws.send(JSON.stringify({ type:"error", message: res.error } satisfies ServerToClient));
+          ws.send(JSON.stringify({ type:"error", message: (res as { ok: false; error: string }).error } satisfies ServerToClient));
         }
       }
     } catch (e:any) {
@@ -53,9 +58,10 @@ type ProposalResult = { ok: true } | { ok: false; error: string };
 
 function handleProposal(p: PlayerProposal): ProposalResult {
   const v = validateProposal(world, p);
-  if (!v.ok) return { ok: false, error: v.error };
+  if (!v.ok) return { ok: false, error: (v as { ok: false; error: string }).error };
   const { newWorld, newEvents } = stepSimulation(world, p);
   world = newWorld;
+  world.version = VERSION; // Ensure version is always set
   backlog.push(...newEvents);
   broadcast({ type:"events", events: newEvents, world });
   return { ok: true };
@@ -65,6 +71,7 @@ function handleProposal(p: PlayerProposal): ProposalResult {
 setInterval(()=>{
   const { newWorld, newEvents } = stepSimulation(world, null);
   world = newWorld;
+  world.version = VERSION; // Ensure version is always set
   if (newEvents.length) {
     backlog.push(...newEvents);
     broadcast({ type:"events", events: newEvents, world });

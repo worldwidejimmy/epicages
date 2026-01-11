@@ -2,6 +2,15 @@ import { useEffect, useRef } from "react";
 import * as PIXI from "pixi.js";
 import { useGameStore } from "../state";
 
+// Era-specific color themes
+const ERA_THEMES: Record<string, { primary: number; secondary: number; accent: number; structure: number }> = {
+  stone: { primary: 0xF9D65C, secondary: 0x8B4513, accent: 0xD4A574, structure: 0x654321 },
+  copper: { primary: 0xCD7F32, secondary: 0x8B4513, accent: 0xE6A857, structure: 0x6B4423 },
+  bronze: { primary: 0xB87333, secondary: 0x8B4513, accent: 0xD4A574, structure: 0x5C4033 },
+  iron: { primary: 0x708090, secondary: 0x2F4F4F, accent: 0x9CA3AF, structure: 0x36454F },
+  medieval: { primary: 0xC0C0C0, secondary: 0x696969, accent: 0xD3D3D3, structure: 0x4B4B4B }
+};
+
 async function loadAtlas(era: string){
   const url = `/assets/atlas_${era}.png`;
   try {
@@ -10,6 +19,126 @@ async function loadAtlas(era: string){
     return frames;
   } catch {
     return null;
+  }
+}
+
+// Helper to draw a more detailed hut
+function drawHut(g: PIXI.Graphics, x: number, y: number, size: number, era: string) {
+  const theme = ERA_THEMES[era] || ERA_THEMES.stone;
+  // Base
+  g.rect(x - size/2, y - size/2, size, size);
+  g.fill(theme.structure);
+  g.stroke({ color: theme.secondary, width: 1 });
+  // Roof (triangle)
+  g.moveTo(x - size/2, y - size/2);
+  g.lineTo(x, y - size/2 - size/3);
+  g.lineTo(x + size/2, y - size/2);
+  g.fill(theme.secondary);
+  // Door
+  g.rect(x - size/6, y + size/6, size/3, size/3);
+  g.fill(0x2C1810);
+}
+
+// Helper to draw a farm field
+function drawFarm(g: PIXI.Graphics, x: number, y: number, size: number) {
+  // Field base
+  g.rect(x - size/2, y - size/2, size, size);
+  g.fill(0x8B7355); // Brown earth
+  // Crop rows
+  for (let i = 0; i < 3; i++) {
+    g.rect(x - size/2 + 1, y - size/2 + 2 + i * 2, size - 2, 1);
+    g.fill(0x228B22); // Green crops
+  }
+  g.stroke({ color: 0x654321, width: 1 });
+}
+
+// Helper to draw a forge
+function drawForge(g: PIXI.Graphics, x: number, y: number, size: number, tick: number) {
+  // Base structure
+  g.rect(x - size/2, y - size/2, size, size);
+  g.fill(0x36454F); // Dark gray
+  g.stroke({ color: 0x2F4F4F, width: 1 });
+  // Anvil/forge top
+  g.rect(x - size/3, y - size/2 - 2, size * 2/3, 2);
+  g.fill(0x708090);
+  // Glow effect (animated)
+  const glowIntensity = 0.3 + Math.sin(tick * 0.1) * 0.2;
+  g.circle(x, y, size * 0.8);
+  g.fill({ color: 0xFF4500, alpha: glowIntensity });
+}
+
+// Helper to draw bronze workshop
+function drawBronzeWorkshop(g: PIXI.Graphics, x: number, y: number, size: number, tick: number) {
+  // Larger structure
+  g.rect(x - size/2, y - size/2, size, size * 1.2);
+  g.fill(0x5C4033); // Bronze color
+  g.stroke({ color: 0xB87333, width: 1 });
+  // Roof
+  g.moveTo(x - size/2, y - size/2);
+  g.lineTo(x, y - size/2 - size/4);
+  g.lineTo(x + size/2, y - size/2);
+  g.fill(0x4B4B4B);
+  // Glow from metalworking
+  const glowIntensity = 0.2 + Math.sin(tick * 0.15) * 0.15;
+  g.circle(x, y, size * 0.7);
+  g.fill({ color: 0xFFD700, alpha: glowIntensity });
+}
+
+// Helper to draw charcoal kiln with smoke
+function drawKiln(g: PIXI.Graphics, x: number, y: number, size: number, tick: number) {
+  // Kiln base (circular)
+  g.circle(x, y, size);
+  g.fill(0x2C2C2C);
+  g.stroke({ color: 0x1A1A1A, width: 1 });
+  // Top opening
+  g.circle(x, y - size/2, size/3);
+  g.fill(0x1A1A1A);
+  // Smoke particles (animated)
+  for (let i = 0; i < 3; i++) {
+    const offset = (tick * 0.05 + i * 0.5) % (Math.PI * 2);
+    const smokeX = x + Math.sin(offset) * 2;
+    const smokeY = y - size/2 - 3 - (tick * 0.1 + i) % 5;
+    const alpha = 0.6 - (tick * 0.1 + i) % 5 * 0.1;
+    g.circle(smokeX, smokeY, 1.5);
+    g.fill({ color: 0x808080, alpha: Math.max(0.1, alpha) });
+  }
+}
+
+// Helper to draw palissade (fence)
+function drawPalissade(g: PIXI.Graphics, x: number, y: number, size: number) {
+  // Vertical posts
+  g.rect(x - 1, y - size/2, 2, size);
+  g.fill(0x654321);
+  // Horizontal crossbeam
+  g.rect(x - size/2, y - size/4, size, 1);
+  g.fill(0x5C4033);
+  // Pointed top
+  g.moveTo(x - 1, y - size/2);
+  g.lineTo(x, y - size/2 - 2);
+  g.lineTo(x + 1, y - size/2);
+  g.fill(0x654321);
+}
+
+// Helper to draw a better person sprite
+function drawPerson(g: PIXI.Graphics, x: number, y: number, activity: string, era: string) {
+  const theme = ERA_THEMES[era] || ERA_THEMES.stone;
+  // Head
+  g.circle(x, y - 3, 2);
+  g.fill(0xF5DEB3);
+  g.stroke({ color: 0x8B4513, width: 0.5 });
+  // Body
+  g.rect(x - 1.5, y - 1, 3, 4);
+  g.fill(theme.accent);
+  g.stroke({ color: theme.secondary, width: 0.5 });
+  // Activity indicator
+  if (activity === "farming") {
+    // Small tool in hand
+    g.rect(x + 1.5, y, 1, 2);
+    g.fill(0x8B4513);
+  } else if (activity === "working") {
+    // Hammer/tool
+    g.rect(x + 1.5, y, 0.8, 1.5);
+    g.fill(0x696969);
   }
 }
 
@@ -119,6 +248,8 @@ export default function GameCanvas(){
     
     container.removeChildren();
     const tileSize = 20;
+    const era = data.era || "stone";
+    const theme = ERA_THEMES[era] || ERA_THEMES.stone;
     
     // Draw terrain
     for(let y=0; y<data.height; y++){
@@ -158,38 +289,30 @@ export default function GameCanvas(){
     for(const s of data.settlements){
       const centerX = s.pos.x * tileSize + 10;
       const centerY = s.pos.y * tileSize + 10;
+      const settlementEra = s.era || era;
+      const settlementTheme = ERA_THEMES[settlementEra] || ERA_THEMES.stone;
       
-      // Draw settlement base (campfire or main building)
+      // Draw settlement base (era-appropriate)
       const base = new PIXI.Graphics();
-      base.circle(centerX, centerY, 8);
-      base.fill(0xF9D65C);
-      base.stroke({ color: 0x8B4513, width: 2 }); // Brown outline
+      const baseSize = Math.min(8 + Math.floor(s.pop / 10), 12);
+      base.circle(centerX, centerY, baseSize);
+      base.fill(settlementTheme.primary);
+      base.stroke({ color: settlementTheme.secondary, width: 2 });
+      // Inner circle for depth
+      base.circle(centerX, centerY, baseSize * 0.7);
+      base.fill({ color: settlementTheme.accent, alpha: 0.5 });
       container.addChild(base);
       
-      // Draw population indicator (visible people around settlement)
-      const popCount = Math.min(s.pop, 16); // Cap visual population
-      for(let i = 0; i < popCount; i++){
-        const angle = (i / popCount) * Math.PI * 2 + (data.tick * 0.01); // Slow rotation animation
-        const radius = 18 + Math.sin(data.tick * 0.02 + i) * 3; // Gentle movement
-        const px = centerX + Math.cos(angle) * radius;
-        const py = centerY + Math.sin(angle) * radius;
-        
-        // Draw person as a larger, more visible shape
-        const person = new PIXI.Graphics();
-        
-        // Body (larger circle)
-        person.circle(px, py, 3);
-        person.fill(0xFFE4B5); // Beige body
-        person.stroke({ color: 0x8B4513, width: 1 }); // Brown outline
-        
-        // Head (smaller circle above)
-        person.circle(px, py - 4, 2);
-        person.fill(0xF5DEB3); // Lighter skin tone for head
-        
-        container.addChild(person);
+      // Draw campfire glow if campfire exists
+      if (s.structures.includes("campfire")) {
+        const fireGlow = new PIXI.Graphics();
+        const glowIntensity = 0.4 + Math.sin(data.tick * 0.2) * 0.2;
+        fireGlow.circle(centerX, centerY, baseSize * 0.6);
+        fireGlow.fill({ color: 0xFF4500, alpha: glowIntensity });
+        container.addChild(fireGlow);
       }
       
-      // Draw structures around settlement
+      // Draw structures around settlement (with visual effects)
       const structurePositions = [
         {x: -15, y: -15}, {x: 15, y: -15}, {x: -15, y: 15}, {x: 15, y: 15},
         {x: -20, y: 0}, {x: 20, y: 0}, {x: 0, y: -20}, {x: 0, y: 20}
@@ -203,40 +326,105 @@ export default function GameCanvas(){
         
         const structureGraphic = new PIXI.Graphics();
         
-        // Different shapes for different structures
+        // Enhanced structure rendering
         if(structure === "hut") {
-          structureGraphic.rect(sx-3, sy-3, 6, 6);
-          structureGraphic.fill(0x8B4513); // Brown hut
+          drawHut(structureGraphic, sx, sy, 8, settlementEra);
         } else if(structure === "campfire") {
-          structureGraphic.circle(sx, sy, 2);
-          structureGraphic.fill(0xFF4500); // Orange fire
+          // Animated campfire
+          const fireSize = 3 + Math.sin(data.tick * 0.3) * 0.5;
+          structureGraphic.circle(sx, sy, fireSize);
+          structureGraphic.fill(0xFF4500);
+          structureGraphic.circle(sx, sy, fireSize * 0.6);
+          structureGraphic.fill(0xFFD700);
+          // Glow
+          structureGraphic.circle(sx, sy, fireSize * 1.5);
+          structureGraphic.fill({ color: 0xFF4500, alpha: 0.3 });
         } else if(structure === "palissade") {
-          structureGraphic.rect(sx-2, sy-4, 4, 8);
-          structureGraphic.fill(0x654321); // Dark brown fence
+          drawPalissade(structureGraphic, sx, sy, 10);
         } else if(structure === "charcoal_kiln") {
-          structureGraphic.circle(sx, sy, 4);
-          structureGraphic.fill(0x36454F); // Dark gray kiln
+          drawKiln(structureGraphic, sx, sy, 5, data.tick);
+        } else if(structure === "farm") {
+          drawFarm(structureGraphic, sx, sy, 8);
+        } else if(structure === "forge") {
+          drawForge(structureGraphic, sx, sy, 7, data.tick);
+        } else if(structure === "bronze_workshop") {
+          drawBronzeWorkshop(structureGraphic, sx, sy, 8, data.tick);
         } else {
-          // Generic building
-          structureGraphic.rect(sx-2, sy-2, 4, 4);
-          structureGraphic.fill(0x696969); // Gray
+          // Generic building with era theme
+          structureGraphic.rect(sx-3, sy-3, 6, 6);
+          structureGraphic.fill(settlementTheme.structure);
+          structureGraphic.stroke({ color: settlementTheme.secondary, width: 1 });
         }
         
         container.addChild(structureGraphic);
       });
       
-      // Settlement name
+      // Draw population indicator (visible people around settlement)
+      const popCount = Math.min(s.pop, 20); // Increased cap
+      const structures = s.structures || [];
+      const hasFarm = structures.includes("farm");
+      const hasForge = structures.includes("forge");
+      const hasWorkshop = structures.includes("bronze_workshop");
+      
+      for(let i = 0; i < popCount; i++){
+        const angle = (i / popCount) * Math.PI * 2 + (data.tick * 0.01);
+        const radius = 20 + Math.sin(data.tick * 0.02 + i) * 4;
+        const px = centerX + Math.cos(angle) * radius;
+        const py = centerY + Math.sin(angle) * radius;
+        
+        // Determine activity based on position relative to structures
+        let activity = "idle";
+        if (hasFarm && Math.abs(px - centerX) < 15 && Math.abs(py - centerY) < 15) {
+          activity = "farming";
+        } else if ((hasForge || hasWorkshop) && Math.abs(px - centerX) < 12 && Math.abs(py - centerY) < 12) {
+          activity = "working";
+        }
+        
+        const person = new PIXI.Graphics();
+        drawPerson(person, px, py, activity, settlementEra);
+        container.addChild(person);
+      }
+      
+      // Settlement name with better styling
       const nameText = new PIXI.Text({
         text: s.name,
         style: {
-          fontSize: 10,
+          fontSize: 11,
           fill: 0xFFFFFF,
-          fontFamily: 'Arial'
+          fontFamily: 'Arial',
+          stroke: { color: 0x000000, width: 2 },
+          dropShadow: {
+            color: 0x000000,
+            blur: 2,
+            angle: Math.PI / 4,
+            distance: 1
+          }
         }
       });
       nameText.x = centerX - nameText.width / 2;
-      nameText.y = centerY + 25;
+      nameText.y = centerY + baseSize + 8;
       container.addChild(nameText);
+      
+      // Population count badge
+      if (s.pop > 20) {
+        const popBadge = new PIXI.Graphics();
+        popBadge.rect(centerX - 12, centerY - baseSize - 8, 24, 6);
+        popBadge.fill({ color: 0x000000, alpha: 0.6 });
+        popBadge.stroke({ color: settlementTheme.primary, width: 1 });
+        container.addChild(popBadge);
+        
+        const popText = new PIXI.Text({
+          text: `${s.pop}`,
+          style: {
+            fontSize: 8,
+            fill: 0xFFFFFF,
+            fontFamily: 'Arial'
+          }
+        });
+        popText.x = centerX - popText.width / 2;
+        popText.y = centerY - baseSize - 7;
+        container.addChild(popText);
+      }
     }
   }
 
@@ -273,10 +461,25 @@ export default function GameCanvas(){
       };
       window.addEventListener('epicages:zoom', onZoom as any);
       
+      // Animation ticker for smooth visual effects
+      // Redraw periodically to update animations (glow, smoke, etc.)
+      let animationFrame = 0;
+      const ticker = app.ticker.add(() => {
+        animationFrame++;
+        // Redraw every 3 frames for smooth animations without too much overhead
+        if (animationFrame % 3 === 0) {
+          const currentWorld = useGameStore.getState().world;
+          if (currentWorld) {
+            drawWorld();
+          }
+        }
+      });
+      
       // Initial draw
       drawWorld();
       
       return ()=>{
+        app.ticker.remove(ticker);
         window.removeEventListener('resize', drawWorld);
         window.removeEventListener('epicages:zoom', onZoom as any);
         if (typeof cleanup === 'function') cleanup();
