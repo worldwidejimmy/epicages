@@ -5,9 +5,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import http from "http";
 
-import { makeInitialWorld, stepSimulation, validateProposal } from "./server/dist/sim.js";
-import { planFromIntent } from "./server/dist/planner.js";
-import { planWithLLM } from "./server/dist/llm.js";
+import { makeInitialWorld, stepSimulation, validateProposal } from "./server/dist/src/sim.js";
+import { planFromIntent } from "./server/dist/src/planner.js";
+import { planWithLLM } from "./server/dist/src/llm.js";
 
 // Version code for deployment verification
 const VERSION = "1.0.0-gameplay-v2";
