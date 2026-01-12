@@ -189,19 +189,24 @@ function CommandInput(){
 
 function Neighbors(){
   const world = useGameStore(s => s.world);
+  const neighbors = world?.neighbors || [];
   
   return (
     <div className="neighbors-section">
       <h3 title="Other civilizations in your world">Neighbors</h3>
-      {world?.neighbors?.map(neighbor => (
-        <div key={neighbor.id} className="neighbor" title={`Civilization: ${neighbor.name || neighbor.id}`}>
-          <strong>{neighbor.name || neighbor.id}</strong>
-          <div className="neighbor-info" title="Basic information about this civilization">
-            Population: <span title="Total number of people">{neighbor.pop}</span> | 
-            Status: <span title="Diplomatic relationship">{neighbor.status}</span>
+      {neighbors.length > 0 ? (
+        neighbors.map(neighbor => (
+          <div key={neighbor.id} className="neighbor" title={`Civilization: ${neighbor.name || neighbor.id}`}>
+            <strong>{neighbor.name || neighbor.id}</strong>
+            <div className="neighbor-info" title="Basic information about this civilization">
+              Population: <span title="Total number of people">{neighbor.pop}</span> | 
+              Status: <span title="Diplomatic relationship">{neighbor.status}</span>
+            </div>
           </div>
-        </div>
-      )) || <div title="No other civilizations discovered yet">No neighbors discovered</div>}
+        ))
+      ) : (
+        <div title="No other civilizations discovered yet">No neighbors discovered</div>
+      )}
     </div>
   );
 }
