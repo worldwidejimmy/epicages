@@ -200,9 +200,11 @@ export default function GameCanvas(){
     const app = appRef.current;
     if(!container || !app) return;
     let dragging = false;
+    let mouseDown = false;
     let lastX = 0, lastY = 0;
     let dragStartX = 0, dragStartY = 0;
     const onDown = (e: PointerEvent)=>{
+      mouseDown = true;
       dragStartX = e.clientX;
       dragStartY = e.clientY;
       dragging = false; // Start as false, only set to true if we actually drag
@@ -217,31 +219,35 @@ export default function GameCanvas(){
       const worldX = (mx - container.x) / scaleRef.current;
       const worldY = (my - container.y) / scaleRef.current;
 
-      // Update tooltip position and check for hover (always, even when dragging)
+      // Update tooltip position and check for hover (always)
       setTooltipPos({ x: e.clientX, y: e.clientY });
       const settlement = getSettlementAtPoint(worldX, worldY);
       setHoveredSettlement(settlement);
 
-      // Check if we should start dragging
-      if (!dragging && (lastX !== 0 || lastY !== 0)) {
-        const dragDistance = Math.sqrt((e.clientX - dragStartX) ** 2 + (e.clientY - dragStartY) ** 2);
-        if (dragDistance > 5) {
-          dragging = true;
+      // Only check for dragging if mouse button is down
+      if (mouseDown) {
+        // Check if we should start dragging
+        if (!dragging) {
+          const dragDistance = Math.sqrt((e.clientX - dragStartX) ** 2 + (e.clientY - dragStartY) ** 2);
+          if (dragDistance > 5) {
+            dragging = true;
+          }
         }
-      }
 
-      if (dragging) {
-        const dx = e.clientX - lastX;
-        const dy = e.clientY - lastY;
-        container.x += dx;
-        container.y += dy;
+        // Only move container if actually dragging
+        if (dragging) {
+          const dx = e.clientX - lastX;
+          const dy = e.clientY - lastY;
+          container.x += dx;
+          container.y += dy;
+        }
+        lastX = e.clientX;
+        lastY = e.clientY;
       }
-      lastX = e.clientX;
-      lastY = e.clientY;
     };
     const onUp = (e: PointerEvent)=>{
       // Check if this was a click (not a drag)
-      if (!dragging) {
+      if (mouseDown && !dragging) {
         const rect = (app.view as HTMLCanvasElement).getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
@@ -252,6 +258,7 @@ export default function GameCanvas(){
           setContextMenu({ x: e.clientX, y: e.clientY, settlement });
         }
       }
+      mouseDown = false;
       dragging = false;
       lastX = 0;
       lastY = 0;
