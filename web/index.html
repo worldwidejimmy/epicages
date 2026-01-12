@@ -144,6 +144,70 @@
         margin-bottom: 8px;
         box-sizing: border-box;
       }
+
+      .action-messages-section {
+        margin-bottom: 16px;
+      }
+
+      .action-messages-section h3 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #e6e9ef;
+      }
+
+      .action-messages {
+        max-height: 200px;
+        overflow-y: auto;
+        background: rgba(27, 36, 57, 0.4);
+        border: 1px solid #2e3548;
+        border-radius: 4px;
+        padding: 8px;
+      }
+
+      .action-message {
+        display: flex;
+        gap: 8px;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(46, 53, 72, 0.5);
+      }
+
+      .action-message:last-child {
+        border-bottom: none;
+      }
+
+      .action-message-status {
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+
+      .action-message-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .action-message-title {
+        font-size: 12px;
+        font-weight: 500;
+        color: #e6e9ef;
+        margin-bottom: 2px;
+      }
+
+      .action-message-text {
+        font-size: 11px;
+        color: #b8bcc8;
+      }
+
+      .action-message-pending .action-message-title {
+        color: #f9d65c;
+      }
+
+      .action-message-success .action-message-title {
+        color: #6bc97f;
+      }
+
+      .action-message-error .action-message-title {
+        color: #e67e7e;
+      }
       
       .tech-section, .structures-section, .neighbors-section {
         margin-bottom: 16px;
@@ -168,6 +232,19 @@
         border-radius: 4px;
         margin-bottom: 4px;
         font-size: 12px;
+      }
+
+      .tech-item-clickable, .structure-item-clickable {
+        transition: background 0.1s, border-color 0.1s;
+      }
+
+      .tech-item-clickable:hover, .structure-item-clickable:hover {
+        background: rgba(249, 214, 92, 0.1);
+        border-color: #f9d65c;
+      }
+
+      .tech-item-researched, .structure-item-built {
+        opacity: 0.6;
       }
       
       .neighbor {

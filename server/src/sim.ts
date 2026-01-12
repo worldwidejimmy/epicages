@@ -20,7 +20,7 @@ export function makeInitialWorld(seed: number): World {
   }
   const start: Settlement = {
     id: randomUUID(),
-    name: "Hearth-1",
+    name: "Stone Circle",
     pos: { x: Math.floor(width/2), y: Math.floor(height/2) },
     storage: { berries: 40, fish: 10, wood: 20, stone: 10 },
     structures: ["campfire"],
@@ -271,7 +271,7 @@ export function stepSimulation(world: World, proposal: PlayerProposal | null): {
 
     // 3. Population growth (only if housing capacity allows)
     const housingCapacity = getHousingCapacity(s);
-    if (s.pop < housingCapacity && Math.random() < 0.2) {
+    if (s.pop < housingCapacity && Math.random() < 0.3) {
       s.pop += 1;
     }
   });

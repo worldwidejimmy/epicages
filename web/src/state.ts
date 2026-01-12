@@ -1,6 +1,15 @@
 import { create } from "zustand";
 import type { World, GameEventShort, ServerToClient, ClientToServer } from "../../shared/types";
 
+export type UserAction = {
+  id: string;
+  timestamp: number;
+  actionType: 'harvest' | 'build' | 'research' | 'craft' | 'migrate';
+  actionDetails: string;
+  status: 'pending' | 'success' | 'error';
+  message: string;
+};
+
 type Store = {
   world: World | null;
   events: GameEventShort[];
@@ -17,6 +26,9 @@ type Store = {
   setSelectedObject: (obj: Store["selectedObject"]) => void;
   speed: number;
   setSpeed: (speed: number) => void;
+  userActions: UserAction[];
+  addUserAction: (action: Omit<UserAction, 'id' | 'timestamp'>) => string;
+  updateUserAction: (id: string, updates: Partial<UserAction>) => void;
 };
 
 export const useGameStore = create<Store>((set, get) => {
@@ -80,17 +92,61 @@ export const useGameStore = create<Store>((set, get) => {
         set(state => {
           const nextEvents = [...state.events, ...msg.events].slice(-200);
           const tick = msg.world?.tick ?? state.lastTick ?? state.world?.tick;
+          
+          // Check if any events indicate successful user actions
+          const newActions = [...state.userActions];
+          for (const event of msg.events) {
+            const text = event.text.toLowerCase();
+            // Match events to pending actions
+            for (let i = newActions.length - 1; i >= 0; i--) {
+              const action = newActions[i];
+              if (action.status === 'pending') {
+                // Check if this event matches the action
+                let matched = false;
+                if (action.actionType === 'harvest' && text.includes('gathered')) {
+                  matched = true;
+                } else if (action.actionType === 'build' && text.includes('built')) {
+                  matched = true;
+                } else if (action.actionType === 'research' && text.includes('discovered')) {
+                  matched = true;
+                } else if (action.actionType === 'migrate' && text.includes('moved')) {
+                  matched = true;
+                } else if (action.actionType === 'craft' && (text.includes('crafted') || text.includes('created'))) {
+                  matched = true;
+                }
+                
+                if (matched) {
+                  newActions[i] = { ...action, status: 'success', message: event.text };
+                  break; // Only match one action per event
+                }
+              }
+            }
+          }
+          
           return {
             world: msg.world ?? state.world,
             events: nextEvents,
             status: `events @ tick ${tick ?? "?"}`,
             lastTick: tick,
             lastEvent: payloadEvent ?? state.lastEvent,
-            lastUpdate: now
+            lastUpdate: now,
+            userActions: newActions
           };
         });
       } else if (msg.type === "error") {
         set({ status: `error: ${msg.message}`, lastUpdate: now });
+        // Update the most recent pending action to error
+        set(state => {
+          const actions = [...state.userActions];
+          // Find most recent pending action
+          for (let i = actions.length - 1; i >= 0; i--) {
+            if (actions[i].status === 'pending') {
+              actions[i] = { ...actions[i], status: 'error', message: msg.message };
+              break;
+            }
+          }
+          return { userActions: actions };
+        });
       }
     };
     sender = (m) => socket?.send(JSON.stringify(m));
@@ -122,6 +178,24 @@ export const useGameStore = create<Store>((set, get) => {
       set({ speed });
       // Send speed change to server
       sender?.({ type: "setSpeed", speed } as any);
+    },
+    userActions: [],
+    addUserAction: (action) => {
+      const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newAction: UserAction = {
+        ...action,
+        id,
+        timestamp: Date.now(),
+      };
+      set(state => ({
+        userActions: [...state.userActions, newAction].slice(-15) // Keep last 15
+      }));
+      return id;
+    },
+    updateUserAction: (id, updates) => {
+      set(state => ({
+        userActions: state.userActions.map(a => a.id === id ? { ...a, ...updates } : a)
+      }));
     }
   };
 });

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useGameStore } from "./state";
 import GameCanvas from "./components/GameCanvas";
 import SplashScreen from "./components/SplashScreen";
+import ActionMessages from "./components/ActionMessages";
+import { validateAction, getAllTechs, canResearchTech, getAllStructures, canBuildStructure, getStructureCost } from "./validation";
+import { useActionFeedback } from "./hooks/useActionFeedback";
 
 const readyStateLabels = [
   "connecting",
@@ -153,6 +156,60 @@ function SpeedControl(){
   );
 }
 
+function QuickActions() {
+  const { executeAction } = useActionFeedback();
+  const world = useGameStore(s => s.world);
+  const settlement = world?.settlements?.[0];
+  
+  return (
+    <div className="actions">
+      <h3 title="Quick actions you can take">Quick Actions</h3>
+      <div className="buttons">
+        <button 
+          className="btn" 
+          onClick={() => executeAction(
+            { playerId: "local", action: "harvest", args: { resource: "berries", amount: 6, settlementId: settlement?.id } },
+            "Harvest berries"
+          )} 
+          title="Gather 6 berries from the wilderness. Free action that provides food."
+        >
+          Harvest
+        </button>
+        <button 
+          className="btn" 
+          onClick={() => executeAction(
+            { playerId: "local", action: "build", args: { structure: "hut", settlementId: settlement?.id } },
+            "Build hut"
+          )} 
+          title="Build a hut for your people. Costs 15 wood. Increases housing capacity."
+        >
+          Build Hut
+        </button>
+        <button 
+          className="btn" 
+          onClick={() => executeAction(
+            { playerId: "local", action: "research", args: { tech: "pottery" } },
+            "Research pottery"
+          )} 
+          title="Research pottery technology. Unlocks agriculture and advanced cooking. May require resources."
+        >
+          Research Pottery
+        </button>
+        <button 
+          className="btn" 
+          onClick={() => executeAction(
+            { playerId: "local", action: "migrate", args: {} },
+            "Explore"
+          )} 
+          title="Send explorers to discover new lands and resources. Expands your territory."
+        >
+          Explore
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function CommandInput(){
   const [text, setText] = useState("");
   
@@ -280,21 +337,62 @@ function EraBadge() {
 
 function TechTree() {
   const world = useGameStore(s => s.world);
+  const { executeAction } = useActionFeedback();
+  
+  if (!world) return null;
+  
+  const researchedTechs = Object.entries(world.tech || {}).filter(([_, researched]) => researched).map(([tech]) => tech);
+  const allTechs = getAllTechs();
+  const unresearchedTechs = allTechs.filter(tech => !world.tech[tech as any]);
+  
+  const handleTechClick = (tech: string) => {
+    const validation = canResearchTech(world, tech);
+    executeAction(
+      { playerId: "local", action: "research", args: { tech } },
+      `Research ${tech}`
+    );
+  };
   
   return (
     <div className="tech-section">
       <h3 title="Technologies your civilization has discovered">Technologies</h3>
-      {world?.tech && Object.keys(world.tech).length ? (
-        <ul className="tech-list">
-          {Object.entries(world.tech).filter(([_, researched]) => researched).map(([tech, _]) => (
-            <li key={tech} className="tech-item" title={`You have mastered ${tech} technology`}>
-              {tech}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div title="No technologies researched yet - use 'research' commands to advance">
-          No technologies discovered yet
+      {researchedTechs.length > 0 && (
+        <div>
+          <div style={{ fontSize: "11px", color: "#8b95a7", marginBottom: "4px" }}>Researched:</div>
+          <ul className="tech-list">
+            {researchedTechs.map(tech => (
+              <li key={tech} className="tech-item tech-item-researched" title={`You have mastered ${tech} technology`}>
+                {tech}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {unresearchedTechs.length > 0 && (
+        <div style={{ marginTop: researchedTechs.length > 0 ? "12px" : "0" }}>
+          <div style={{ fontSize: "11px", color: "#8b95a7", marginBottom: "4px" }}>Available:</div>
+          <ul className="tech-list">
+            {unresearchedTechs.map(tech => {
+              const validation = canResearchTech(world, tech);
+              const canResearch = validation.ok;
+              return (
+                <li 
+                  key={tech} 
+                  className={`tech-item ${canResearch ? 'tech-item-clickable' : 'tech-item-unavailable'}`}
+                  onClick={() => canResearch && handleTechClick(tech)}
+                  title={canResearch ? `Click to research ${tech}` : `Cannot research: ${validation.ok ? '' : (validation as any).reason}`}
+                  style={{ cursor: canResearch ? 'pointer' : 'not-allowed', opacity: canResearch ? 1 : 0.5 }}
+                >
+                  {tech}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+      {researchedTechs.length === 0 && unresearchedTechs.length === 0 && (
+        <div title="No technologies available">
+          No technologies available
         </div>
       )}
     </div>
@@ -303,22 +401,67 @@ function TechTree() {
 
 function Structures() {
   const world = useGameStore(s => s.world);
-  const localSettlement = world?.settlements?.find(s => s.id === "local") || world?.settlements?.[0];
+  const { executeAction } = useActionFeedback();
+  const settlement = world?.settlements?.[0];
+  
+  if (!world || !settlement) return null;
+  
+  const builtStructures = settlement.structures || [];
+  const allStructures = getAllStructures();
+  const availableStructures = allStructures.filter(struct => !builtStructures.includes(struct));
+  
+  const handleStructureClick = (structure: string) => {
+    executeAction(
+      { playerId: "local", action: "build", args: { structure, settlementId: settlement.id } },
+      `Build ${structure}`
+    );
+  };
+  
+  const formatCost = (cost: Record<string, number>) => {
+    return Object.entries(cost).map(([res, amt]) => `${amt} ${res}`).join(", ");
+  };
   
   return (
     <div className="structures-section">
       <h3 title="Buildings and structures your civilization has constructed">Structures</h3>
-      {localSettlement?.structures?.length ? (
-        <ul className="structure-list">
-          {localSettlement.structures.map((structure, idx) => (
-            <li key={idx} className="structure-item" title={`${structure} - A building of your civilization`}>
-              {structure}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div title="No structures built yet - use 'build' commands to construct buildings">
-          No structures built yet
+      {builtStructures.length > 0 && (
+        <div>
+          <div style={{ fontSize: "11px", color: "#8b95a7", marginBottom: "4px" }}>Built:</div>
+          <ul className="structure-list">
+            {builtStructures.map((structure, idx) => (
+              <li key={idx} className="structure-item structure-item-built" title={`${structure} - A building of your civilization`}>
+                {structure}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {availableStructures.length > 0 && (
+        <div style={{ marginTop: builtStructures.length > 0 ? "12px" : "0" }}>
+          <div style={{ fontSize: "11px", color: "#8b95a7", marginBottom: "4px" }}>Available:</div>
+          <ul className="structure-list">
+            {availableStructures.map(structure => {
+              const validation = canBuildStructure(world, structure);
+              const canBuild = validation.ok;
+              const cost = getStructureCost(structure);
+              return (
+                <li 
+                  key={structure} 
+                  className={`structure-item ${canBuild ? 'structure-item-clickable' : 'structure-item-unavailable'}`}
+                  onClick={() => canBuild && handleStructureClick(structure)}
+                  title={canBuild ? `Click to build ${structure} (${formatCost(cost)})` : `Cannot build: ${validation.ok ? '' : (validation as any).reason}`}
+                  style={{ cursor: canBuild ? 'pointer' : 'not-allowed', opacity: canBuild ? 1 : 0.5 }}
+                >
+                  {structure} ({formatCost(cost)})
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+      {builtStructures.length === 0 && availableStructures.length === 0 && (
+        <div title="No structures available">
+          No structures available
         </div>
       )}
     </div>
@@ -343,17 +486,11 @@ export default function App() {
         
         <ResourceDisplay />
         
-        <div className="actions">
-          <h3 title="Quick actions you can take">Quick Actions</h3>
-          <div className="buttons">
-            <button className="btn" onClick={() => useGameStore.getState().send({ type: "proposal", proposal: { playerId: "local", action: "harvest", args: { resource: "berries", amount: 6 } } })} title="Gather 6 berries from the wilderness. Free action that provides food.">Harvest</button>
-            <button className="btn" onClick={() => useGameStore.getState().send({ type: "proposal", proposal: { playerId: "local", action: "build", args: { structure: "hut" } } })} title="Build a hut for your people. Costs 15 wood. Increases housing capacity.">Build Hut</button>
-            <button className="btn" onClick={() => useGameStore.getState().send({ type: "proposal", proposal: { playerId: "local", action: "research", args: { tech: "pottery" } } })} title="Research pottery technology. Unlocks agriculture and advanced cooking. May require resources.">Research Pottery</button>
-            <button className="btn" onClick={() => useGameStore.getState().send({ type: "proposal", proposal: { playerId: "local", action: "migrate", args: {} } })} title="Send explorers to discover new lands and resources. Expands your territory.">Explore</button>
-          </div>
-        </div>
+        <QuickActions />
 
         <CommandInput />
+        
+        <ActionMessages />
         
         <TechTree />
         <Structures />
