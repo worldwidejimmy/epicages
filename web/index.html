@@ -447,6 +447,63 @@
           opacity: 0.5;
         }
       }
+
+      /* Tooltip styles */
+      .game-tooltip {
+        position: fixed;
+        background: rgba(11, 15, 26, 0.95);
+        border: 1px solid #5b6374;
+        border-radius: 4px;
+        padding: 8px 12px;
+        color: #e6e9ef;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 10000;
+        max-width: 200px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .game-tooltip strong {
+        color: #f9d65c;
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .game-tooltip .tooltip-line {
+        margin: 2px 0;
+      }
+
+      /* Context menu styles */
+      .context-menu {
+        position: fixed;
+        background: rgba(11, 15, 26, 0.98);
+        border: 1px solid #5b6374;
+        border-radius: 4px;
+        padding: 4px 0;
+        color: #e6e9ef;
+        font-size: 13px;
+        z-index: 10001;
+        min-width: 150px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+
+      .context-menu-header {
+        padding: 8px 12px;
+        border-bottom: 1px solid #2e3548;
+        color: #f9d65c;
+        font-weight: bold;
+        font-size: 12px;
+      }
+
+      .context-menu-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+
+      .context-menu-item:hover {
+        background: rgba(249, 214, 92, 0.1);
+      }
     </style>
     <link rel="icon" type="image/png" href="/assets/favicon.png" />
     <link rel="shortcut icon" type="image/png" href="/assets/favicon.png" />

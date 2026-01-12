@@ -131,6 +131,28 @@ function Zoom(){
   );
 }
 
+function SpeedControl(){
+  const speed = useGameStore(s => s.speed);
+  const setSpeed = useGameStore(s => s.setSpeed);
+  
+  return (
+    <div>
+      <label htmlFor="speedRange" title="Adjust the simulation speed">Speed:</label>
+      <input 
+        type="range" 
+        id="speedRange"
+        min="1" 
+        max="10" 
+        step="1" 
+        value={speed} 
+        onChange={e => setSpeed(parseInt(e.target.value))}
+        title="Slide to adjust simulation speed (1x to 10x)"
+      />
+      <span title="Current simulation speed">{speed}x</span>
+    </div>
+  );
+}
+
 function CommandInput(){
   const [text, setText] = useState("");
   
@@ -335,6 +357,7 @@ export default function App() {
         
         <div className="controls">
           <Zoom />
+          <SpeedControl />
         </div>
       </div>
       

@@ -1,6 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as PIXI from "pixi.js";
 import { useGameStore } from "../state";
+import type { Settlement } from "../../shared/types";
+import ContextMenu from "./ContextMenu";
 
 // Era-specific color themes
 const ERA_THEMES: Record<string, { primary: number; secondary: number; accent: number; structure: number }> = {
@@ -148,10 +150,16 @@ export default function GameCanvas(){
   const atlasRef = useRef<PIXI.Texture[] | null>(null);
   const appRef = useRef<PIXI.Application | null>(null);
   const containerRef = useRef<PIXI.Container | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   const scaleRef = useRef(1);
   const minScale = 0.5;
   const maxScale = 3;
+
+  // Tooltip and context menu state
+  const [hoveredSettlement, setHoveredSettlement] = useState<Settlement | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; settlement: Settlement } | null>(null);
 
   function handleWheel(e: WheelEvent){
     const container = containerRef.current;
@@ -170,23 +178,84 @@ export default function GameCanvas(){
     container.position.set(mx - worldX * newScale, my - worldY * newScale);
   }
 
+  // Simple hit test: check if mouse is over a settlement
+  function getSettlementAtPoint(worldX: number, worldY: number): Settlement | null {
+    const data = useGameStore.getState().world;
+    if (!data) return null;
+    const tileSize = 20;
+    for (const s of data.settlements) {
+      const centerX = s.pos.x * tileSize + 10;
+      const centerY = s.pos.y * tileSize + 10;
+      const baseSize = Math.min(8 + Math.floor(s.pop / 10), 12);
+      const dist = Math.sqrt((worldX - centerX) ** 2 + (worldY - centerY) ** 2);
+      if (dist <= baseSize + 5) { // 5px padding for easier clicking
+        return s;
+      }
+    }
+    return null;
+  }
+
   function enableDragInteractions(){
     const container = containerRef.current;
     const app = appRef.current;
     if(!container || !app) return;
     let dragging = false;
     let lastX = 0, lastY = 0;
-    const onDown = (e: PointerEvent)=>{ dragging = true; lastX = e.clientX; lastY = e.clientY; (e.currentTarget as any).setPointerCapture?.(e.pointerId); };
+    let dragStartX = 0, dragStartY = 0;
+    const onDown = (e: PointerEvent)=>{
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragging = false; // Start as false, only set to true if we actually drag
+      lastX = e.clientX;
+      lastY = e.clientY;
+      (e.currentTarget as any).setPointerCapture?.(e.pointerId);
+    };
     const onMove = (e: PointerEvent)=>{
-      if (!dragging) return;
-      const dx = e.clientX - lastX;
-      const dy = e.clientY - lastY;
-      container.x += dx;
-      container.y += dy;
+      const rect = (app.view as HTMLCanvasElement).getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const worldX = (mx - container.x) / scaleRef.current;
+      const worldY = (my - container.y) / scaleRef.current;
+
+      // Update tooltip position and check for hover (always, even when dragging)
+      setTooltipPos({ x: e.clientX, y: e.clientY });
+      const settlement = getSettlementAtPoint(worldX, worldY);
+      setHoveredSettlement(settlement);
+
+      // Check if we should start dragging
+      if (!dragging && (lastX !== 0 || lastY !== 0)) {
+        const dragDistance = Math.sqrt((e.clientX - dragStartX) ** 2 + (e.clientY - dragStartY) ** 2);
+        if (dragDistance > 5) {
+          dragging = true;
+        }
+      }
+
+      if (dragging) {
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        container.x += dx;
+        container.y += dy;
+      }
       lastX = e.clientX;
       lastY = e.clientY;
     };
-    const onUp = ()=> dragging = false;
+    const onUp = (e: PointerEvent)=>{
+      // Check if this was a click (not a drag)
+      if (!dragging) {
+        const rect = (app.view as HTMLCanvasElement).getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const worldX = (mx - container.x) / scaleRef.current;
+        const worldY = (my - container.y) / scaleRef.current;
+        const settlement = getSettlementAtPoint(worldX, worldY);
+        if (settlement) {
+          setContextMenu({ x: e.clientX, y: e.clientY, settlement });
+        }
+      }
+      dragging = false;
+      lastX = 0;
+      lastY = 0;
+    };
     const onWheel = handleWheel;
     const canvas = app.view as HTMLCanvasElement;
     canvas.style.touchAction = 'none';
@@ -499,5 +568,39 @@ export default function GameCanvas(){
     }
   }, [world]);
 
-  return <div ref={ref} style={{position:"absolute", inset:0}} />;
+  return (
+    <>
+      <div ref={ref} style={{position:"absolute", inset:0}} />
+      {hoveredSettlement && (
+        <div
+          ref={tooltipRef}
+          className="game-tooltip"
+          style={{
+            left: `${tooltipPos.x + 10}px`,
+            top: `${tooltipPos.y + 10}px`,
+          }}
+        >
+          <strong>{hoveredSettlement.name}</strong>
+          <div className="tooltip-line">Population: {hoveredSettlement.pop}</div>
+          <div className="tooltip-line">Structures: {hoveredSettlement.structures.length}</div>
+          {Object.entries(hoveredSettlement.storage).filter(([_, v]) => v && v > 0).length > 0 && (
+            <div className="tooltip-line">
+              Resources: {Object.entries(hoveredSettlement.storage)
+                .filter(([_, v]) => v && v > 0)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(", ")}
+            </div>
+          )}
+        </div>
+      )}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          object={{ type: "settlement", settlement: contextMenu.settlement }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+    </>
+  );
 }

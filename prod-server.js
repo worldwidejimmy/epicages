@@ -53,6 +53,8 @@ const wss = new WebSocketServer({ server });
 let world = makeInitialWorld(Date.now());
 world.version = VERSION; // Set version on initial world
 let backlog = [];
+let simulationSpeed = 1.0; // 1.0 = 2000ms, 10.0 = 200ms
+let simulationInterval = null;
 
 function broadcast(msg) {
   const payload = JSON.stringify(msg);
@@ -85,6 +87,22 @@ function handleProposal(p) {
   return { ok: true };
 }
 
+function startSimulation() {
+  if (simulationInterval) {
+    clearInterval(simulationInterval);
+  }
+  const delay = Math.max(200, 2000 / simulationSpeed); // Min 200ms, max 2000ms
+  simulationInterval = setInterval(() => {
+    const { newWorld, newEvents } = stepSimulation(world, null);
+    world = newWorld;
+    world.version = VERSION; // Ensure version is always set
+    if (newEvents.length) {
+      backlog.push(...newEvents);
+      broadcast({ type: "events", events: newEvents, world });
+    }
+  }, delay);
+}
+
 wss.on("connection", (ws) => {
   world.version = VERSION; // Ensure version is set before sending snapshot
   ws.send(JSON.stringify({ type: "snapshot", world, events: backlog.slice(-40) }));
@@ -97,6 +115,9 @@ wss.on("connection", (ws) => {
         if (!res.ok) {
           ws.send(JSON.stringify({ type: "error", message: res.error }));
         }
+      } else if (msg.type === "setSpeed") {
+        simulationSpeed = Math.max(1, Math.min(10, parseFloat(msg.speed) || 1));
+        startSimulation(); // Restart with new speed
       }
     } catch (error) {
       ws.send(JSON.stringify({ type: "error", message: error?.message || "bad message" }));
@@ -104,15 +125,8 @@ wss.on("connection", (ws) => {
   });
 });
 
-setInterval(() => {
-  const { newWorld, newEvents } = stepSimulation(world, null);
-  world = newWorld;
-  world.version = VERSION; // Ensure version is always set
-  if (newEvents.length) {
-    backlog.push(...newEvents);
-    broadcast({ type: "events", events: newEvents, world });
-  }
-}, 2000);
+// Start simulation loop
+startSimulation();
 
 app.use('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'web', 'dist', 'index.html'));

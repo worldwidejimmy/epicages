@@ -54,4 +54,5 @@ export type ServerToClient =
 
 export type ClientToServer =
   | { type: "hello"; name?: string }
-  | { type: "proposal"; proposal: PlayerProposal };
+  | { type: "proposal"; proposal: PlayerProposal }
+  | { type: "setSpeed"; speed: number };

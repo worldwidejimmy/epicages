@@ -13,6 +13,10 @@ type Store = {
   lastTick?: number;
   lastUpdate?: number;
   lastEvent: GameEventShort | null;
+  selectedObject: { type: "settlement"; id: string } | { type: "structure"; settlementId: string; structureIndex: number } | null;
+  setSelectedObject: (obj: Store["selectedObject"]) => void;
+  speed: number;
+  setSpeed: (speed: number) => void;
 };
 
 export const useGameStore = create<Store>((set, get) => {
@@ -110,6 +114,14 @@ export const useGameStore = create<Store>((set, get) => {
     status: "idle",
     lastTick: undefined,
     lastUpdate: undefined,
-    lastEvent: null
+    lastEvent: null,
+    selectedObject: null,
+    setSelectedObject: (obj) => set({ selectedObject: obj }),
+    speed: 1.0,
+    setSpeed: (speed: number) => {
+      set({ speed });
+      // Send speed change to server
+      sender?.({ type: "setSpeed", speed } as any);
+    }
   };
 });
