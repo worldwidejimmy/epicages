@@ -5,6 +5,7 @@ import SplashScreen from "./components/SplashScreen";
 import ActionMessages from "./components/ActionMessages";
 import { validateAction, getAllTechs, canResearchTech, getAllStructures, canBuildStructure, getStructureCost } from "./validation";
 import { useActionFeedback } from "./hooks/useActionFeedback";
+import { useBotMode } from "./hooks/useBotMode";
 
 const readyStateLabels = [
   "connecting",
@@ -468,6 +469,36 @@ function Structures() {
   );
 }
 
+function BotMode() {
+  const { enabled, setEnabled, lastAction } = useBotMode();
+
+  return (
+    <div className="bot-mode-section">
+      <div className="bot-mode-header">
+        <h3 title="Let an AI agent play the game automatically">Bot Mode</h3>
+        <button
+          className={`btn btn-toggle ${enabled ? "btn-active" : ""}`}
+          onClick={() => setEnabled(!enabled)}
+          title={enabled ? "Stop the AI bot" : "Start the AI bot — it will harvest, build, and research automatically"}
+        >
+          {enabled ? "⏹ Stop" : "▶ Start"}
+        </button>
+      </div>
+      {enabled && (
+        <div className="bot-status">
+          <div className="bot-indicator">
+            <span className="bot-dot"></span>
+            <span>Bot playing…</span>
+          </div>
+          <div className="bot-last-action" title="Last action taken by the bot">
+            Last: <em>{lastAction}</em>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   useEffect(() => {
     // Connection is automatically established in the store
@@ -491,7 +522,9 @@ export default function App() {
         <CommandInput />
         
         <ActionMessages />
-        
+
+        <BotMode />
+
         <TechTree />
         <Structures />
         <Neighbors />
