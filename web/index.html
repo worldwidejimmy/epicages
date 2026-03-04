@@ -550,6 +550,68 @@
         margin: 2px 0;
       }
 
+      /* Housing full indicator */
+      .housing-full {
+        color: #e67e7e !important;
+      }
+
+      /* Minimap overlay */
+      .minimap {
+        position: absolute;
+        bottom: 16px;
+        right: 16px;
+        width: 160px;
+        height: 110px;
+        border: 1px solid #5b6374;
+        border-radius: 4px;
+        background: #0b0f1a;
+        z-index: 100;
+        opacity: 0.9;
+        image-rendering: pixelated;
+      }
+
+      .minimap:hover {
+        opacity: 1;
+        border-color: #f9d65c;
+      }
+
+      /* Minimap legend */
+      .minimap-legend {
+        position: absolute;
+        bottom: 136px;
+        right: 16px;
+        background: rgba(11, 15, 26, 0.85);
+        border: 1px solid #2e3548;
+        border-radius: 4px;
+        padding: 6px 8px;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        pointer-events: none;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10px;
+        color: #b8bcc8;
+        white-space: nowrap;
+      }
+
+      .legend-swatch {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border: 1px solid rgba(255,255,255,0.2);
+        flex-shrink: 0;
+      }
+
+      .legend-swatch-circle {
+        border-radius: 50%;
+      }
+
       /* Context menu styles */
       .context-menu {
         position: fixed;

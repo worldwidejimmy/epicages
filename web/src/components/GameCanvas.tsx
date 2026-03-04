@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as PIXI from "pixi.js";
 import { useGameStore } from "../state";
-import type { Settlement } from "../../shared/types";
+import type { Settlement, World } from "../../shared/types";
 import ContextMenu from "./ContextMenu";
 
 // Era-specific color themes
@@ -144,6 +144,8 @@ function drawPerson(g: PIXI.Graphics, x: number, y: number, activity: string, er
   }
 }
 
+const BIOME_COLORS_HEX = ['#4169E1', '#228B22', '#006400', '#696969'];
+
 export default function GameCanvas(){
   const ref = useRef<HTMLDivElement | null>(null);
   const world = useGameStore(s=> s.world);
@@ -151,6 +153,7 @@ export default function GameCanvas(){
   const appRef = useRef<PIXI.Application | null>(null);
   const containerRef = useRef<PIXI.Container | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const minimapRef = useRef<HTMLCanvasElement | null>(null);
 
   const scaleRef = useRef(1);
   const minScale = 0.5;
@@ -317,6 +320,58 @@ export default function GameCanvas(){
     };
   }
 
+  function drawMinimap(data: World | null) {
+    const canvas = minimapRef.current;
+    if (!canvas || !data) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const scaleX = W / data.width;
+    const scaleY = H / data.height;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Draw terrain
+    for (let y = 0; y < data.height; y++) {
+      for (let x = 0; x < data.width; x++) {
+        const t = data.biomeMap[y * data.width + x];
+        ctx.fillStyle = BIOME_COLORS_HEX[t] ?? '#228B22';
+        ctx.fillRect(x * scaleX, y * scaleY, Math.ceil(scaleX), Math.ceil(scaleY));
+      }
+    }
+
+    // Draw settlements
+    for (const s of data.settlements) {
+      const mx = s.pos.x * scaleX;
+      const my = s.pos.y * scaleY;
+      const r = Math.max(2, 2 + Math.floor(s.pop / 15));
+      ctx.beginPath();
+      ctx.arc(mx, my, r, 0, Math.PI * 2);
+      ctx.fillStyle = s.id === 'local' ? '#f9d65c' : '#ff9966';
+      ctx.fill();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    // Draw viewport indicator
+    const app = appRef.current;
+    const container = containerRef.current;
+    if (app && container) {
+      const tileSize = 20;
+      const scale = scaleRef.current;
+      const vw = app.renderer.width / scale / tileSize;
+      const vh = app.renderer.height / scale / tileSize;
+      const vx = -container.x / scale / tileSize;
+      const vy = -container.y / scale / tileSize;
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(vx * scaleX, vy * scaleY, vw * scaleX, vh * scaleY);
+    }
+  }
+
   function drawWorld(){
     const container = containerRef.current;
     const data = useGameStore.getState().world;
@@ -370,7 +425,13 @@ export default function GameCanvas(){
       
       // Draw settlement base (era-appropriate)
       const base = new PIXI.Graphics();
-      const baseSize = Math.min(8 + Math.floor(s.pop / 10), 12);
+      const baseSize = Math.min(10 + Math.floor(s.pop / 8), 16);
+      // Outer glow halo - makes settlement visible against any terrain
+      base.circle(centerX, centerY, baseSize + 5);
+      base.fill({ color: settlementTheme.primary, alpha: 0.25 });
+      base.circle(centerX, centerY, baseSize + 3);
+      base.fill({ color: settlementTheme.primary, alpha: 0.15 });
+      // Main settlement circle
       base.circle(centerX, centerY, baseSize);
       base.fill(settlementTheme.primary);
       base.stroke({ color: settlementTheme.secondary, width: 2 });
@@ -465,43 +526,46 @@ export default function GameCanvas(){
       const nameText = new PIXI.Text({
         text: s.name,
         style: {
-          fontSize: 11,
+          fontSize: 13,
           fill: 0xFFFFFF,
           fontFamily: 'Arial',
-          stroke: { color: 0x000000, width: 2 },
+          fontWeight: 'bold',
+          stroke: { color: 0x000000, width: 3 },
           dropShadow: {
             color: 0x000000,
-            blur: 2,
+            blur: 3,
             angle: Math.PI / 4,
             distance: 1
           }
         }
       });
       nameText.x = centerX - nameText.width / 2;
-      nameText.y = centerY + baseSize + 8;
+      nameText.y = centerY + baseSize + 6;
       container.addChild(nameText);
-      
-      // Population count badge
-      if (s.pop > 20) {
-        const popBadge = new PIXI.Graphics();
-        popBadge.rect(centerX - 12, centerY - baseSize - 8, 24, 6);
-        popBadge.fill({ color: 0x000000, alpha: 0.6 });
-        popBadge.stroke({ color: settlementTheme.primary, width: 1 });
-        container.addChild(popBadge);
-        
-        const popText = new PIXI.Text({
-          text: `${s.pop}`,
-          style: {
-            fontSize: 8,
-            fill: 0xFFFFFF,
-            fontFamily: 'Arial'
-          }
-        });
-        popText.x = centerX - popText.width / 2;
-        popText.y = centerY - baseSize - 7;
-        container.addChild(popText);
-      }
+
+      // Population count badge - always show
+      const popBadgeWidth = s.pop >= 100 ? 28 : 22;
+      const popBadge = new PIXI.Graphics();
+      popBadge.rect(centerX - popBadgeWidth / 2, centerY - baseSize - 10, popBadgeWidth, 8);
+      popBadge.fill({ color: 0x000000, alpha: 0.7 });
+      popBadge.stroke({ color: settlementTheme.primary, width: 1 });
+      container.addChild(popBadge);
+
+      const popText = new PIXI.Text({
+        text: `pop:${s.pop}`,
+        style: {
+          fontSize: 7,
+          fill: 0xFFFFFF,
+          fontFamily: 'Arial'
+        }
+      });
+      popText.x = centerX - popText.width / 2;
+      popText.y = centerY - baseSize - 9;
+      container.addChild(popText);
     }
+
+    // Update minimap after drawing world
+    drawMinimap(data);
   }
 
   // Initialize PIXI once
@@ -578,6 +642,21 @@ export default function GameCanvas(){
   return (
     <>
       <div ref={ref} style={{position:"absolute", inset:0}} />
+      <canvas
+        ref={minimapRef}
+        width={160}
+        height={110}
+        className="minimap"
+        title="Minimap - white box shows current viewport"
+      />
+      <div className="minimap-legend">
+        <span className="legend-item"><span className="legend-swatch" style={{background:"#4169E1"}}></span>Water</span>
+        <span className="legend-item"><span className="legend-swatch" style={{background:"#228B22"}}></span>Grass</span>
+        <span className="legend-item"><span className="legend-swatch" style={{background:"#006400"}}></span>Forest</span>
+        <span className="legend-item"><span className="legend-swatch" style={{background:"#696969"}}></span>Mountain</span>
+        <span className="legend-item"><span className="legend-swatch legend-swatch-circle" style={{background:"#f9d65c"}}></span>You</span>
+        <span className="legend-item"><span className="legend-swatch legend-swatch-circle" style={{background:"#ff9966"}}></span>Neighbor</span>
+      </div>
       {hoveredSettlement && (
         <div
           ref={tooltipRef}
