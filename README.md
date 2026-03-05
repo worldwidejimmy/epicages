@@ -54,6 +54,32 @@ npm run dev     # http://localhost:5173
 ```
 - Use HUD buttons for quick actions; try the **Intent** box: “build a fence”, “research smelting”, “gift the river clan 10 wood”.
 - **Touch**: drag to pan, pinch/scroll to zoom, or use the zoom buttons.
+- **Bot Mode**: toggle in the sidebar to let an AI agent play as your civilization automatically.
+
+## Features
+
+### Natural-language intent
+Type anything into the intent box at the bottom of the sidebar. A keyword planner (or an OpenAI-compatible LLM if configured) maps your text to a structured game action and sends it to the server for validation.
+
+### Intro splash
+On first load a full-screen intro explains the game loop, the AI features, and basic controls. The game world loads in the background; once connected the splash transitions to the intro card. Click **Play Now** to start.
+
+### Bot Mode
+A sidebar toggle lets an AI agent take over your civilization. Every 3.5 seconds it evaluates the world state and picks the highest-priority action:
+
+| Priority | Condition | Action |
+|---|---|---|
+| 1 | Food < 8 | Harvest berries |
+| 2 | Pop near housing cap + wood ≥ 15 | Build hut |
+| 3 | Tech not yet researched | Research (pottery → agriculture → kiln → smelting → bronze) |
+| 4 | Wood ≥ 25, no farm | Build farm |
+| 5 | Wood < 20 | Harvest wood |
+| — | Default | Harvest berries |
+
+Actions are sent through the same WebSocket proposal path as manual play; the server validates everything normally.
+
+### Neighbor AI
+Neighboring civilizations run their own autonomous loop server-side: they gather resources, research techs, build structures, and grow population each tick without player input.
 
 ## Gotchas & quick fixes
 1. **Path alias (`@shared/*`) in server**  
